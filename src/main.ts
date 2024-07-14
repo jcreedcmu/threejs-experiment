@@ -8,10 +8,14 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
 
-import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 
 init();
+
+function randElt<T>(things: T[]): T {
+  return things[Math.floor(Math.random() * things.length)];
+}
 
 function init() {
   let container;
@@ -39,19 +43,26 @@ function init() {
   const group = new THREE.Group();
   scene.add(group);
 
-  const geometry = new THREE.CylinderGeometry(0.5, 0.1, 20);
+  const geometry = new THREE.CylinderGeometry(0.5, 0.5, 20);
+  const geometry2 = new THREE.SphereGeometry(0.5);
   //  const geometry = new THREE.BoxGeometry(1, 20, 1);
 
   for (let i = 0; i < 100; i++) {
 
     const material = new THREE.MeshPhongMaterial({
-      color: 0x7f7fff,
+      color: randElt([
+        0xffffff,
+        0x0,
+        0x7f7fff, 0xffff40, 0xf41f54,
+        0xff8d00, 0x1ec464, 0xe75de2,
+      ]),
       emissive: 0x040404,
-      shininess: 5,
-      specular: 0xaaaaaa,
+      shininess: 50,
+      specular: 0x444444,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
+    const mesh2 = new THREE.Mesh(geometry2, material);
 
     // mesh.position.x = Math.random() * 4 - 2;
     // mesh.position.y = Math.random() * 4 - 2;
@@ -63,7 +74,10 @@ function init() {
     container.rotation.y = 100 * Math.random();
     container.rotation.z = 100 * Math.random();
 
-    container.scale.set(20, 10 + 0.1 * Math.random(), 20);
+    mesh2.position.y = 20;
+    container.add(mesh2);
+
+    container.scale.set(30, 10 + 5 * Math.random(), 30);
     group.add(container);
 
   }
@@ -74,28 +88,26 @@ function init() {
 
   const composer = new EffectComposer(renderer);
 
-  const renderPass = new RenderPass(scene, camera);
+  const renderPass = new SSAARenderPass(scene, camera);
+  renderPass.sampleLevel = 4;
+  console.log(renderPass.sampleLevel);
   composer.addPass(renderPass);
 
   const ssaoPass = new SSAOPass(scene, camera, width, height);
   composer.addPass(ssaoPass);
 
+
   ssaoPass.kernelRadius = 32;
-  ssaoPass.minDistance = 0.01;
+  ssaoPass.minDistance = 0.001;
   ssaoPass.maxDistance = 0.3;
 
   const outputPass = new OutputPass();
   composer.addPass(outputPass);
 
 
-  const fxaaPass = new ShaderPass(FXAAShader);
 
   const pixelRatio = renderer.getPixelRatio();
 
-  fxaaPass.material.uniforms['resolution'].value.x = 1 / (container.offsetWidth * pixelRatio);
-  fxaaPass.material.uniforms['resolution'].value.y = 1 / (container.offsetHeight * pixelRatio);
-
-  //  composer.addPass(fxaaPass);
 
   //  ssaoPass.output = SSAOPass.OUTPUT.Default;
 
