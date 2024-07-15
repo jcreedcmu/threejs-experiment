@@ -18,10 +18,11 @@ function randElt<T>(things: T[]): T {
 }
 
 function init() {
-  let container;
-  let scene;
+  let highlighted: THREE.Object3D | undefined = undefined;
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
 
-  container = document.createElement('div');
+  const container = document.createElement('div');
   document.body.appendChild(container);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -34,7 +35,7 @@ function init() {
   camera.position.z = 500;
 
 
-  scene = new THREE.Scene();
+  const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf5eed6);
 
   scene.add(new THREE.DirectionalLight(0xffffff, 4));
@@ -43,11 +44,12 @@ function init() {
   const group = new THREE.Group();
   scene.add(group);
 
+  const intersectables: THREE.Object3D[] = [];
   const geometry = new THREE.CylinderGeometry(0.5, 0.5, 20);
   const geometry2 = new THREE.SphereGeometry(0.5);
   //  const geometry = new THREE.BoxGeometry(1, 20, 1);
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 10; i++) {
 
     const material = new THREE.MeshPhongMaterial({
       color: randElt([
@@ -62,6 +64,7 @@ function init() {
     });
 
     const mesh = new THREE.Mesh(geometry, material);
+    intersectables.push(mesh);
     const mesh2 = new THREE.Mesh(geometry2, material);
 
     // mesh.position.x = Math.random() * 4 - 2;
@@ -90,7 +93,6 @@ function init() {
 
   const renderPass = new SSAARenderPass(scene, camera);
   renderPass.sampleLevel = 4;
-  console.log(renderPass.sampleLevel);
   composer.addPass(renderPass);
 
   const ssaoPass = new SSAOPass(scene, camera, width, height);
@@ -163,11 +165,29 @@ function init() {
   }
 
   function render() {
-    const timer = performance.now();
-    // group.rotation.x = timer * 0.0002;
-    // group.rotation.y = timer * 0.0001;
     composer.render();
+    camera.updateMatrixWorld();
+    raycaster.setFromCamera(pointer, camera);
+
+    if (highlighted)
+      (highlighted as any).material.emissive.setHex(0x000000);
+
+    const intersects = raycaster.intersectObjects(intersectables, false);
+    if (intersects.length > 0) {
+      highlighted = intersects[0].object;
+      (highlighted as any).material.emissive.setHex(0x007f7f);
+    }
+    else {
+      highlighted = undefined;
+    }
+
   }
 
   window.addEventListener('resize', onWindowResize);
+
+  document.addEventListener('mousemove', e => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = - (e.clientY / window.innerHeight) * 2 + 1;
+  });
+
 }
