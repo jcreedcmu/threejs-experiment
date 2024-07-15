@@ -32,7 +32,9 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 7000);
-  camera.position.z = 500;
+  camera.position.x = 25;
+  camera.position.y = 25;
+  camera.position.z = -50;
 
 
   const scene = new THREE.Scene();
@@ -45,43 +47,54 @@ function init() {
   scene.add(group);
 
   const intersectables: THREE.Object3D[] = [];
-  const geometry = new THREE.CylinderGeometry(0.5, 0.5, 20);
-  const geometry2 = new THREE.SphereGeometry(0.5);
-  //  const geometry = new THREE.BoxGeometry(1, 20, 1);
-
   for (let i = 0; i < 10; i++) {
 
+    const geometry = new THREE.BoxGeometry(1, 1, 1).toNonIndexed();
+    const positionAttribute = geometry.getAttribute('position');
+
+    const color = new THREE.Color();
+    const colors = [];
+
+    for (let i = 0; i < positionAttribute.count; i += 6) {
+
+      color.setHex(Math.random() * 0xffffff);
+
+      // face one
+
+      colors.push(color.r, color.g, color.b);
+      colors.push(color.r, color.g, color.b);
+      colors.push(color.r, color.g, color.b);
+
+      // face two
+
+      colors.push(color.r, color.g, color.b);
+      colors.push(color.r, color.g, color.b);
+      colors.push(color.r, color.g, color.b);
+
+    }
+
+    // const color =  randElt([
+    //         0xffffff,
+    //         0x0,
+    //         0x7f7fff, 0xffff40, 0xf41f54,
+    //         0xff8d00, 0x1ec464, 0xe75de2,
+    // ]);
+
+    const colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
+    geometry.setAttribute('color', colorAttribute);
+
     const material = new THREE.MeshPhongMaterial({
-      color: randElt([
-        0xffffff,
-        0x0,
-        0x7f7fff, 0xffff40, 0xf41f54,
-        0xff8d00, 0x1ec464, 0xe75de2,
-      ]),
-      emissive: 0x040404,
-      shininess: 50,
-      specular: 0x444444,
+      vertexColors: true,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
     intersectables.push(mesh);
-    const mesh2 = new THREE.Mesh(geometry2, material);
 
-    // mesh.position.x = Math.random() * 4 - 2;
-    // mesh.position.y = Math.random() * 4 - 2;
-    // mesh.position.z = Math.random() * 4 - 2;
-    mesh.position.y = 10;
-    const container = new THREE.Group();
-    container.add(mesh);
-    container.rotation.x = 100 * Math.random();
-    container.rotation.y = 100 * Math.random();
-    container.rotation.z = 100 * Math.random();
 
-    mesh2.position.y = 20;
-    container.add(mesh2);
+    mesh.position.x = 5.3 * i;
 
-    container.scale.set(30, 10 + 5 * Math.random(), 30);
-    group.add(container);
+    mesh.scale.set(5, 5, 5);
+    group.add(mesh);
 
   }
 
@@ -141,6 +154,7 @@ function init() {
   }
 
   const orbit = new OrbitControls(camera, renderer.domElement);
+  orbit.target = new THREE.Vector3(25, 0, 0);
   orbit.update();
   orbit.addEventListener('change', render);
 
@@ -174,6 +188,7 @@ function init() {
 
     const intersects = raycaster.intersectObjects(intersectables, false);
     if (intersects.length > 0) {
+      console.log(intersects[0].faceIndex);
       highlighted = intersects[0].object;
       (highlighted as any).material.emissive.setHex(0x007f7f);
     }
